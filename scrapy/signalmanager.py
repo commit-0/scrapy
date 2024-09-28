@@ -1,13 +1,11 @@
 from typing import Any, List, Tuple
-
 from pydispatch import dispatcher
 from twisted.internet.defer import Deferred
-
 from scrapy.utils import signal as _signal
 
-
 class SignalManager:
-    def __init__(self, sender: Any = dispatcher.Anonymous):
+
+    def __init__(self, sender: Any=dispatcher.Anonymous):
         self.sender: Any = sender
 
     def connect(self, receiver: Any, signal: Any, **kwargs: Any) -> None:
@@ -24,8 +22,7 @@ class SignalManager:
         :param signal: the signal to connect to
         :type signal: object
         """
-        kwargs.setdefault("sender", self.sender)
-        dispatcher.connect(receiver, signal, **kwargs)
+        pass
 
     def disconnect(self, receiver: Any, signal: Any, **kwargs: Any) -> None:
         """
@@ -33,8 +30,7 @@ class SignalManager:
         opposite effect of the :meth:`connect` method, and the arguments
         are the same.
         """
-        kwargs.setdefault("sender", self.sender)
-        dispatcher.disconnect(receiver, signal, **kwargs)
+        pass
 
     def send_catch_log(self, signal: Any, **kwargs: Any) -> List[Tuple[Any, Any]]:
         """
@@ -43,8 +39,7 @@ class SignalManager:
         The keyword arguments are passed to the signal handlers (connected
         through the :meth:`connect` method).
         """
-        kwargs.setdefault("sender", self.sender)
-        return _signal.send_catch_log(signal, **kwargs)
+        pass
 
     def send_catch_log_deferred(self, signal: Any, **kwargs: Any) -> Deferred:
         """
@@ -57,8 +52,7 @@ class SignalManager:
         The keyword arguments are passed to the signal handlers (connected
         through the :meth:`connect` method).
         """
-        kwargs.setdefault("sender", self.sender)
-        return _signal.send_catch_log_deferred(signal, **kwargs)
+        pass
 
     def disconnect_all(self, signal: Any, **kwargs: Any) -> None:
         """
@@ -67,5 +61,4 @@ class SignalManager:
         :param signal: the signal to disconnect from
         :type signal: object
         """
-        kwargs.setdefault("sender", self.sender)
-        _signal.disconnect_all(signal, **kwargs)
+        pass

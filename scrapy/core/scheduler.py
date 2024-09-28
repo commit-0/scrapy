@@ -1,13 +1,10 @@
 from __future__ import annotations
-
 import json
 import logging
 from abc import abstractmethod
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Type, TypeVar, cast
-
 from twisted.internet.defer import Deferred
-
 from scrapy.crawler import Crawler
 from scrapy.dupefilters import BaseDupeFilter
 from scrapy.http.request import Request
@@ -15,14 +12,9 @@ from scrapy.spiders import Spider
 from scrapy.statscollectors import StatsCollector
 from scrapy.utils.job import job_dir
 from scrapy.utils.misc import create_instance, load_object
-
 if TYPE_CHECKING:
-    # typing.Self requires Python 3.11
     from typing_extensions import Self
-
-
 logger = logging.getLogger(__name__)
-
 
 class BaseSchedulerMeta(type):
     """
@@ -33,15 +25,7 @@ class BaseSchedulerMeta(type):
         return cls.__subclasscheck__(type(instance))
 
     def __subclasscheck__(cls, subclass: type) -> bool:
-        return (
-            hasattr(subclass, "has_pending_requests")
-            and callable(subclass.has_pending_requests)
-            and hasattr(subclass, "enqueue_request")
-            and callable(subclass.enqueue_request)
-            and hasattr(subclass, "next_request")
-            and callable(subclass.next_request)
-        )
-
+        return hasattr(subclass, 'has_pending_requests') and callable(subclass.has_pending_requests) and hasattr(subclass, 'enqueue_request') and callable(subclass.enqueue_request) and hasattr(subclass, 'next_request') and callable(subclass.next_request)
 
 class BaseScheduler(metaclass=BaseSchedulerMeta):
     """
@@ -65,7 +49,7 @@ class BaseScheduler(metaclass=BaseSchedulerMeta):
         """
         Factory method which receives the current :class:`~scrapy.crawler.Crawler` object as argument.
         """
-        return cls()
+        pass
 
     def open(self, spider: Spider) -> Optional[Deferred]:
         """
@@ -92,7 +76,7 @@ class BaseScheduler(metaclass=BaseSchedulerMeta):
         """
         ``True`` if the scheduler has enqueued requests, ``False`` otherwise
         """
-        raise NotImplementedError()
+        pass
 
     @abstractmethod
     def enqueue_request(self, request: Request) -> bool:
@@ -106,7 +90,7 @@ class BaseScheduler(metaclass=BaseSchedulerMeta):
         For reference, the default Scrapy scheduler returns ``False`` when the
         request is rejected by the dupefilter.
         """
-        raise NotImplementedError()
+        pass
 
     @abstractmethod
     def next_request(self) -> Optional[Request]:
@@ -118,11 +102,8 @@ class BaseScheduler(metaclass=BaseSchedulerMeta):
         to the downloader in the current reactor cycle. The engine will continue
         calling ``next_request`` until ``has_pending_requests`` is ``False``.
         """
-        raise NotImplementedError()
-
-
-SchedulerTV = TypeVar("SchedulerTV", bound="Scheduler")
-
+        pass
+SchedulerTV = TypeVar('SchedulerTV', bound='Scheduler')
 
 class Scheduler(BaseScheduler):
     """
@@ -175,17 +156,7 @@ class Scheduler(BaseScheduler):
     :type crawler: :class:`scrapy.crawler.Crawler`
     """
 
-    def __init__(
-        self,
-        dupefilter: BaseDupeFilter,
-        jobdir: Optional[str] = None,
-        dqclass=None,
-        mqclass=None,
-        logunser: bool = False,
-        stats: Optional[StatsCollector] = None,
-        pqclass=None,
-        crawler: Optional[Crawler] = None,
-    ):
+    def __init__(self, dupefilter: BaseDupeFilter, jobdir: Optional[str]=None, dqclass=None, mqclass=None, logunser: bool=False, stats: Optional[StatsCollector]=None, pqclass=None, crawler: Optional[Crawler]=None):
         self.df: BaseDupeFilter = dupefilter
         self.dqdir: Optional[str] = self._dqdir(jobdir)
         self.pqclass = pqclass
@@ -200,20 +171,7 @@ class Scheduler(BaseScheduler):
         """
         Factory method, initializes the scheduler with arguments taken from the crawl settings
         """
-        dupefilter_cls = load_object(crawler.settings["DUPEFILTER_CLASS"])
-        return cls(
-            dupefilter=create_instance(dupefilter_cls, crawler.settings, crawler),
-            jobdir=job_dir(crawler.settings),
-            dqclass=load_object(crawler.settings["SCHEDULER_DISK_QUEUE"]),
-            mqclass=load_object(crawler.settings["SCHEDULER_MEMORY_QUEUE"]),
-            logunser=crawler.settings.getbool("SCHEDULER_DEBUG"),
-            stats=crawler.stats,
-            pqclass=load_object(crawler.settings["SCHEDULER_PRIORITY_QUEUE"]),
-            crawler=crawler,
-        )
-
-    def has_pending_requests(self) -> bool:
-        return len(self) > 0
+        pass
 
     def open(self, spider: Spider) -> Optional[Deferred]:
         """
@@ -221,21 +179,14 @@ class Scheduler(BaseScheduler):
         (2) initialize the disk queue if the ``jobdir`` attribute is a valid directory
         (3) return the result of the dupefilter's ``open`` method
         """
-        self.spider = spider
-        self.mqs = self._mq()
-        self.dqs = self._dq() if self.dqdir else None
-        return self.df.open()
+        pass
 
     def close(self, reason: str) -> Optional[Deferred]:
         """
         (1) dump pending requests to disk if there is a disk queue
         (2) return the result of the dupefilter's ``close`` method
         """
-        if self.dqs is not None:
-            state = self.dqs.close()
-            assert isinstance(self.dqdir, str)
-            self._write_dqs_state(self.dqdir, state)
-        return self.df.close(reason)
+        pass
 
     def enqueue_request(self, request: Request) -> bool:
         """
@@ -247,18 +198,7 @@ class Scheduler(BaseScheduler):
 
         Return ``True`` if the request was stored successfully, ``False`` otherwise.
         """
-        if not request.dont_filter and self.df.request_seen(request):
-            self.df.log(request, self.spider)
-            return False
-        dqok = self._dqpush(request)
-        assert self.stats is not None
-        if dqok:
-            self.stats.inc_value("scheduler/enqueued/disk", spider=self.spider)
-        else:
-            self._mqpush(request)
-            self.stats.inc_value("scheduler/enqueued/memory", spider=self.spider)
-        self.stats.inc_value("scheduler/enqueued", spider=self.spider)
-        return True
+        pass
 
     def next_request(self) -> Optional[Request]:
         """
@@ -269,17 +209,7 @@ class Scheduler(BaseScheduler):
         Increment the appropriate stats, such as: ``scheduler/dequeued``,
         ``scheduler/dequeued/disk``, ``scheduler/dequeued/memory``.
         """
-        request: Optional[Request] = self.mqs.pop()
-        assert self.stats is not None
-        if request is not None:
-            self.stats.inc_value("scheduler/dequeued/memory", spider=self.spider)
-        else:
-            request = self._dqpop()
-            if request is not None:
-                self.stats.inc_value("scheduler/dequeued/disk", spider=self.spider)
-        if request is not None:
-            self.stats.inc_value("scheduler/dequeued", spider=self.spider)
-        return request
+        pass
 
     def __len__(self) -> int:
         """
@@ -287,85 +217,14 @@ class Scheduler(BaseScheduler):
         """
         return len(self.dqs) + len(self.mqs) if self.dqs is not None else len(self.mqs)
 
-    def _dqpush(self, request: Request) -> bool:
-        if self.dqs is None:
-            return False
-        try:
-            self.dqs.push(request)
-        except ValueError as e:  # non serializable request
-            if self.logunser:
-                msg = (
-                    "Unable to serialize request: %(request)s - reason:"
-                    " %(reason)s - no more unserializable requests will be"
-                    " logged (stats being collected)"
-                )
-                logger.warning(
-                    msg,
-                    {"request": request, "reason": e},
-                    exc_info=True,
-                    extra={"spider": self.spider},
-                )
-                self.logunser = False
-            assert self.stats is not None
-            self.stats.inc_value("scheduler/unserializable", spider=self.spider)
-            return False
-        else:
-            return True
-
-    def _mqpush(self, request: Request) -> None:
-        self.mqs.push(request)
-
-    def _dqpop(self) -> Optional[Request]:
-        if self.dqs is not None:
-            return self.dqs.pop()
-        return None
-
     def _mq(self):
         """Create a new priority queue instance, with in-memory storage"""
-        return create_instance(
-            self.pqclass,
-            settings=None,
-            crawler=self.crawler,
-            downstream_queue_cls=self.mqclass,
-            key="",
-        )
+        pass
 
     def _dq(self):
         """Create a new priority queue instance, with disk storage"""
-        assert self.dqdir
-        state = self._read_dqs_state(self.dqdir)
-        q = create_instance(
-            self.pqclass,
-            settings=None,
-            crawler=self.crawler,
-            downstream_queue_cls=self.dqclass,
-            key=self.dqdir,
-            startprios=state,
-        )
-        if q:
-            logger.info(
-                "Resuming crawl (%(queuesize)d requests scheduled)",
-                {"queuesize": len(q)},
-                extra={"spider": self.spider},
-            )
-        return q
+        pass
 
     def _dqdir(self, jobdir: Optional[str]) -> Optional[str]:
         """Return a folder name to keep disk queue state at"""
-        if jobdir:
-            dqdir = Path(jobdir, "requests.queue")
-            if not dqdir.exists():
-                dqdir.mkdir(parents=True)
-            return str(dqdir)
-        return None
-
-    def _read_dqs_state(self, dqdir: str) -> list:
-        path = Path(dqdir, "active.json")
-        if not path.exists():
-            return []
-        with path.open(encoding="utf-8") as f:
-            return cast(list, json.load(f))
-
-    def _write_dqs_state(self, dqdir: str, state: list) -> None:
-        with Path(dqdir, "active.json").open("w", encoding="utf-8") as f:
-            json.dump(state, f)
+        pass
